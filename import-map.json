@@ -1,0 +1,5 @@
+{
+  "imports": {
+    "fancy-emitter": "//unpkg.com/fancy-emitter@1.3.5/dist/esm/index.js"
+  }
+}
