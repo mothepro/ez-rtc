@@ -9,7 +9,11 @@
   <script type="module" src="//unpkg.com/es-module-shims@0.4.6/dist/es-module-shims.min.js"></script>
   <script type="importmap-shim" src="import-map.json"></script>
   <!-- Production -->
-  <script prod-only type="module-shim" src="//unpkg.com/@mothepro/ez-rtc/dist/esm/demo/index.js"></script>
+  <script prod-only type="prod-only-module-shim" src="//unpkg.com/@mothepro/ez-rtc/dist/esm/demo/index.js"></script>
+  <!-- Development -->
+  <script dev-only type="application/javascript" src="//unpkg.com/typescript@3.7.4/lib/typescript.js"></script>
+  <script dev-only type="module" src="//unpkg.com/@mothepro/ts-module-shim/dist/esm/index.js"></script>
+  <script dev-only type="module-shim" src="index.ts"></script>
 </head>
 
 <body>

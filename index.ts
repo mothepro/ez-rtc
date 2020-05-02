@@ -18,7 +18,6 @@ export const logErr = ({ message, name, ...err }: Error) =>
 
 // The connection!
 const connection = new Connection(iceServers)
-// packingLevel = Level.BASE64
 
 connection.message.on((data: any) => log('New message', data))
 connection.statusChange.on(state => {
@@ -28,18 +27,13 @@ connection.statusChange.on(state => {
 }).catch(logErr)
 
 
-createOfferBtn.onclick = async () =>
-  log('offer', await connection.createOffer())
-// log('offer', pack(await connection.createOffer(), packingLevel))
+createOfferBtn.onclick = async () => log('offer', JSON.stringify(await connection.createOffer()))
 
-createAnswerBtn.onclick = async () =>
-  log('answer', await connection.createAnswer())
-// log('answer', pack(await connection.createAnswer(), packingLevel))
+createAnswerBtn.onclick = async () => log('answer', JSON.stringify(await connection.createAnswer()))
 
 joinBtn.onclick = async () => {
   log('attempting to accept SDP', sdpInput.value)
   await connection.acceptSDP(JSON.parse(sdpInput.value))
-  // await connection.acceptSDP(unpack(sdpInput.value, packingLevel))
 }
 
 sendBtn.onclick = () => {
