@@ -1,5 +1,5 @@
 import iceServers from './ice-servers.json'
-import Connection, { State } from '../index'
+import Connection, { State } from '../index.js'
 
 // Elements on the HTML page
 export const logPre = document.getElementById('log') as HTMLPreElement
