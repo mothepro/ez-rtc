@@ -1,6 +1,6 @@
 {
   "name": "@mothepro/ez-rtc",
-  "description": "",
+  "description": "Simplify the RTC connenctions in browser",
   "author": "Maurice Prosper",
   "version": "0.0.0",
   "license": "Apache-2.0",
@@ -17,12 +17,8 @@
   },
   "scripts": {
     "build": "npm run build:npm && npm run build:esm",
-    "pretest": "npm run build:npm",
-    "test": "mocha -r should -r should-sinon dist/npm/test/*.js",
     "prerelease": "npm run build",
     "release": "np",
-    "importmap": "importly --host unpkg < package.json > demo/import-map.json",
-    "win:importmap": "type package.json | importly --host unpkg > demo/import-map.json",
     "html:dev:real": "replace 'dev-only type=\"dev-only-' 'dev-only type=\"' demo/index.html",
     "html:dev:shim": "replace 'dev-only type=\"' 'dev-only type=\"dev-only-' demo/index.html",
     "html:prod:real": "replace 'prod-only type=\"prod-only-' 'prod-only type=\"' demo/index.html",
@@ -35,14 +31,8 @@
     "build:esm": "tsc -p tsconfig.esm.json"
   },
   "devDependencies": {
-    "@types/mocha": "^7.0.2",
-    "@types/should-sinon": "^0.0.6",
     "gh-pages": "^2.2.0",
-    "importly": "^0.1.0-dev.0",
-    "mocha": "^7.1.2",
     "np": "^6.2.3",
-    "should": "^13.2.3",
-    "should-sinon": "^0.0.6",
     "sinon": "^9.0.2",
     "typescript": "^3.8.3"
   },
