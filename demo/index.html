@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Ez Rtc Demo</title>
+  <title>Serverless WebRTC Demo</title>
   <script type="module" src="//unpkg.com/es-module-shims@0.4.6/dist/es-module-shims.min.js"></script>
   <script type="importmap-shim" src="import-map.json"></script>
   <!-- Production -->
@@ -17,7 +17,14 @@
 </head>
 
 <body>
+  <button id="createOffer">Create Offer</button>
+  <button id="createAnswer">Create Answer</button>
+  <br>
+  <input id="sdp" type="text" />
+  <button id="join">Join</button>
+  <button id="send">Send</button>
 
+  <pre id="log"></pre>
 </body>
 
 </html>
