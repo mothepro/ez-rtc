@@ -1,0 +1,52 @@
+{
+  "name": "@mothepro/ez-rtc",
+  "description": "",
+  "author": "Maurice Prosper",
+  "version": "0.0.0",
+  "license": "Apache-2.0",
+  "main": "dist/npm/index.js",
+  "sideEffects": false,
+  "type": "module",
+  "module": "dist/esm/index.js",
+  "files": [
+    "dist"
+  ],
+  "repository": "https://github.com/mothepro/ez-rtc",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "npm run build:npm && npm run build:esm",
+    "pretest": "npm run build:npm",
+    "test": "mocha -r should -r should-sinon dist/npm/test/*.js",
+    "prerelease": "npm run build",
+    "release": "np",
+    "importmap": "importly --host unpkg < package.json > demo/import-map.json",
+    "win:importmap": "type package.json | importly --host unpkg > demo/import-map.json",
+    "html:dev:real": "replace 'dev-only type=\"dev-only-' 'dev-only type=\"' demo/index.html",
+    "html:dev:shim": "replace 'dev-only type=\"' 'dev-only type=\"dev-only-' demo/index.html",
+    "html:prod:real": "replace 'prod-only type=\"prod-only-' 'prod-only type=\"' demo/index.html",
+    "html:prod:shim": "replace 'prod-only type=\"' 'prod-only type=\"prod-only-' demo/index.html",
+    "predeploy": "npm run build:esm && npm run html:dev:shim && npm run html:prod:real",
+    "postdeploy": "npm run html:dev:real && npm run html:prod:shim",
+    "deploy": "gh-pages -d demo",
+    "postrelease": "npm run deploy",
+    "build:npm": "tsc",
+    "build:esm": "tsc -p tsconfig.esm.json"
+  },
+  "devDependencies": {
+    "@types/mocha": "^7.0.2",
+    "@types/should-sinon": "^0.0.6",
+    "gh-pages": "^2.2.0",
+    "importly": "^0.1.0-dev.0",
+    "mocha": "^7.1.2",
+    "np": "^6.2.3",
+    "should": "^13.2.3",
+    "should-sinon": "^0.0.6",
+    "sinon": "^9.0.2",
+    "typescript": "^3.8.3"
+  },
+  "dependencies": {
+    "fancy-emitter": "^1.3.5"
+  }
+}
