@@ -2,7 +2,7 @@
   "name": "@mothepro/ez-rtc",
   "description": "Simplify the RTC connenctions in browser",
   "author": "Maurice Prosper",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "license": "Apache-2.0",
   "main": "dist/npm/index.js",
   "sideEffects": false,
