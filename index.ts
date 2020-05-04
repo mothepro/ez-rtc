@@ -45,10 +45,10 @@ export default class {
       this.connection = new peerConnection({ iceServers: [{ urls }] })
 
       // We don't care about the connection state nor signaling, only gathering
-      this.connection.onicegatheringstatechange = this.onICEGatheringStateChange
-      this.connection.onnegotiationneeded = this.onNegotiationNeeded
-      this.connection.ondatachannel = this.onDataChannel
-      this.connection.onicecandidateerror = this.onErrorEvent
+      this.connection.addEventListener('icegatheringstatechange', this.iceGatheringStateChange)
+      this.connection.addEventListener('negotiationneeded', this.negotiationNeeded)
+      this.connection.addEventListener('datachannel', this.newDataChannel)
+      this.connection.addEventListener('icecandidateerror', this.errorEvent)
     } catch (e) {
       this.statusChange.deactivate(e)
       this.close()
@@ -92,7 +92,12 @@ export default class {
   private async createSDP(description: RTCPeerConnection['createOffer' | 'createAnswer']) {
     try {
       if (this.state == State.OFFLINE || this.state == State.CONNECTING) {
-        this.connection.setLocalDescription(await description())
+        this.connection.setLocalDescription(await description({
+          iceRestart: false,
+          offerToReceiveAudio: false,
+          offerToReceiveVideo: false,
+          voiceActivityDetection: false,
+        }))
 
         // The offer is useless until we have gathered all ICE.
         for await (const state of this.statusChange)
@@ -110,7 +115,7 @@ export default class {
   /** Saves the SDP from a connecting client. */
   async acceptSDP(sdp: RTCSessionDescriptionInit) {
     try {
-      await this.connection.setRemoteDescription(new RTCSessionDescription(sdp))
+      await this.connection.setRemoteDescription(sdp)
     } catch (e) {
       this.statusChange.deactivate(e)
     }
@@ -120,17 +125,17 @@ export default class {
   private bindChannel(channel: RTCDataChannel) {
     if (this.channel)
       this.statusChange.deactivate(Error('Can not rebind a new data channel.'))
+    else
+      this.channel = channel
 
-    channel.onopen = () => this.statusChange.activate(State.CONNECTED)
-    channel.onmessage = ({ data }: MessageEvent) => this.message.activate(data)
-    channel.onerror = ({ error }: RTCErrorEvent) => this.statusChange.deactivate(error!)
-    channel.onclose = this.close
-
-    return this.channel = channel
+    channel.addEventListener('open', () => this.statusChange.activate(State.CONNECTED))
+    channel.addEventListener('message', ({ data }: MessageEvent) => this.message.activate(data))
+    channel.addEventListener('error', ({ error }: RTCErrorEvent) => this.statusChange.deactivate(error!))
+    channel.addEventListener('close', this.close)
   }
 
   /** Something changed with our gathering state. */
-  private onICEGatheringStateChange = () => {
+  private iceGatheringStateChange = () => {
     switch (this.connection.iceGatheringState) {
       case 'new':
         this.statusChange.activate(State.ONLINE)
@@ -147,15 +152,15 @@ export default class {
   }
 
   /** Close if we have already gone too far in the process. */
-  private onNegotiationNeeded: RTCPeerConnection['onnegotiationneeded'] =
+  private negotiationNeeded: NonNullable<RTCPeerConnection['onnegotiationneeded']> =
     () => this.state == State.CONNECTED || this.state == State.READY && this.close()
 
   /** A data channel has been created for us. (We are a receiver.) */
-  private onDataChannel: RTCPeerConnection['ondatachannel'] =
+  private newDataChannel: NonNullable<RTCPeerConnection['ondatachannel']> =
     ({ channel }) => this.bindChannel(channel)
 
   /** An error occurred with an ICE connection or gathering. */
-  private onErrorEvent: RTCPeerConnection['onicecandidateerror'] =
+  private errorEvent: NonNullable<RTCPeerConnection['onicecandidateerror']> =
     ({ errorCode, errorText, hostCandidate, url }: RTCPeerConnectionIceErrorEvent) => {
       const err = Error(errorText)
         ; (err as Error & RTCPeerConnectionIceErrorEventInit).errorCode = errorCode
