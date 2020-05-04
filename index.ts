@@ -10,7 +10,7 @@ export const joinBtn = document.getElementById('join') as HTMLButtonElement
 export const sendBtn = document.getElementById('send') as HTMLButtonElement
 
 // Helper methods
-export const log = (...args: any[]) => logPre.innerHTML += `${args.length}> ${args.join('\t')}\n`
+export const log = (...args: any[]) => logPre.innerHTML += `${args.join('\t')}\n\n`
 export const logErr = ({ name, ...err }: Error) =>
   logPre.innerHTML += `<font color="red">${name || 'Error'}> ${JSON.stringify({...err}, null, 2)}\n</font>`
 export const escapeHtml = (unsafe: string) => unsafe
@@ -31,8 +31,8 @@ connection.statusChange.on(state => {
 }).catch(logErr)
 
 
-createOfferBtn.addEventListener('click', async () => log('offer', JSON.stringify(await connection.createOffer())))
-createAnswerBtn.addEventListener('click', async () => log('answer', JSON.stringify(await connection.createAnswer())))
+createOfferBtn.addEventListener('click', async () => log(JSON.stringify(await connection.createOffer())))
+createAnswerBtn.addEventListener('click', async () => log(JSON.stringify(await connection.createAnswer())))
 
 joinBtn.addEventListener('click', async () => {
   log('attempting to accept SDP', sdpInput.value)
