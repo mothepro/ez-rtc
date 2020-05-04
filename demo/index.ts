@@ -2,18 +2,18 @@ import iceServers from './ice-servers.json'
 import Connection, { State } from '../index.js'
 
 // Elements on the HTML page
-export const logPre = document.getElementById('log') as HTMLPreElement
-export const createOfferBtn = document.getElementById('createOffer') as HTMLButtonElement
-export const createAnswerBtn = document.getElementById('createAnswer') as HTMLButtonElement
-export const sdpInput = document.getElementById('sdp') as HTMLInputElement
-export const joinBtn = document.getElementById('join') as HTMLButtonElement
-export const sendBtn = document.getElementById('send') as HTMLButtonElement
+const logPre = document.getElementById('log') as HTMLPreElement
+const createOfferBtn = document.getElementById('createOffer') as HTMLButtonElement
+const createAnswerBtn = document.getElementById('createAnswer') as HTMLButtonElement
+const sdpInput = document.getElementById('sdp') as HTMLInputElement
+const joinBtn = document.getElementById('join') as HTMLButtonElement
+const sendBtn = document.getElementById('send') as HTMLButtonElement
 
 // Helper methods
-export const log = (...args: any[]) => logPre.innerHTML += `${args.join('\t')}\n\n`
-export const logErr = ({ name, ...err }: Error) =>
+const log = (...args: any[]) => logPre.innerHTML += `${args.join('\t')}\n\n`
+const logErr = ({ name, ...err }: Error) =>
   logPre.innerHTML += `<font color="red">${name || 'Error'}> ${JSON.stringify({...err}, null, 2)}\n</font>`
-export const escapeHtml = (unsafe: string) => unsafe
+const escapeHtml = (unsafe: string) => unsafe
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
