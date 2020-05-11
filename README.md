@@ -1,6 +1,8 @@
 # EZ RTC
 
-> Simplify the RTC connenctions in browser
+> Simplify the data Peer to Peer (RTC) connenctions in browser
+
+View the [Compatibility](https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/RTCPeerConnection#Browser_compatibility) to see which browsers support this.
 
 ## Install
 
@@ -17,3 +19,7 @@
 + Messages can now be sent between browsers
 
 See the demo for a simple how-to
+
+## Roadmap
+
+Add support for video & audio calls

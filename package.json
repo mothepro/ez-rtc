@@ -1,6 +1,6 @@
 {
   "name": "@mothepro/ez-rtc",
-  "description": "Simplify the RTC connenctions in browser",
+  "description": "Simplify the data Peer to Peer (RTC) connenctions in browser",
   "author": "Maurice Prosper",
   "version": "0.0.4",
   "license": "Apache-2.0",

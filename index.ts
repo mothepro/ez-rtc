@@ -1,5 +1,7 @@
 import { Emitter, SafeEmitter } from 'fancy-emitter'
 
+export type Sendable = string | Blob | ArrayBuffer | ArrayBufferView
+
 export const enum State {
   /** Initial state. Nothing has occurred. */
   OFFLINE,
@@ -24,16 +26,16 @@ export const enum State {
 }
 
 export default class {
+
+  private state = State.OFFLINE
+  private readonly connection: RTCPeerConnection
+  private channel?: RTCDataChannel
+
   /** Activates when the status has been updated. */
-  readonly statusChange = new Emitter<State>(newState => (this.state as State) = newState)
+  readonly statusChange = new Emitter<State>(newState => this.state = newState)
 
   /** Activates when a new message is received through the channel. */
-  readonly message = new SafeEmitter<string | Blob | ArrayBuffer | ArrayBufferView>()
-
-  readonly state: State = State.OFFLINE
-
-  private readonly connection!: RTCPeerConnection
-  private channel?: RTCDataChannel
+  readonly message = new SafeEmitter<Sendable>()
 
   constructor(
     urls: string[],
@@ -41,10 +43,13 @@ export default class {
     // Dependecy Injection 
     peerConnection = RTCPeerConnection,
   ) {
-    try { // Sometimes creation can fail with a bad config. (setConfiguration method doesn't throw...)
-      this.connection = new peerConnection({ iceServers: [{ urls }] })
+    this.connection = new peerConnection
 
-      // We don't care about the connection state nor signaling, only gathering
+    try {
+      // Sometimes creation can fail with a bad config.
+      this.connection.setConfiguration({ iceServers: [{ urls }] })
+      
+      // Bind emitters, We don't care about the connection state nor signaling, only gathering
       this.connection.addEventListener('icegatheringstatechange', this.iceGatheringStateChange)
       this.connection.addEventListener('negotiationneeded', this.negotiationNeeded)
       this.connection.addEventListener('datachannel', this.newDataChannel)
@@ -89,6 +94,15 @@ export default class {
    */
   createAnswer = () => this.createSDP(this.connection.createAnswer.bind(this.connection))
 
+  /** Saves the SDP from a connecting client. */
+  async acceptSDP(sdp: RTCSessionDescriptionInit) {
+    try {
+      await this.connection.setRemoteDescription(sdp)
+    } catch (e) {
+      this.statusChange.deactivate(e)
+    }
+  }
+
   private async createSDP(description: RTCPeerConnection['createOffer' | 'createAnswer']) {
     try {
       if (this.state == State.OFFLINE || this.state == State.CONNECTING) {
@@ -112,15 +126,6 @@ export default class {
     }
   }
 
-  /** Saves the SDP from a connecting client. */
-  async acceptSDP(sdp: RTCSessionDescriptionInit) {
-    try {
-      await this.connection.setRemoteDescription(sdp)
-    } catch (e) {
-      this.statusChange.deactivate(e)
-    }
-  }
-
   /** Binds the emitters to the channel. */
   private bindChannel(channel: RTCDataChannel) {
     if (this.channel)
@@ -138,17 +143,15 @@ export default class {
   private iceGatheringStateChange = () => {
     switch (this.connection.iceGatheringState) {
       case 'new':
-        this.statusChange.activate(State.ONLINE)
-        break
+        return this.statusChange.activate(State.ONLINE)
 
       case 'gathering':
-        this.statusChange.activate(State.CONNECTING)
-        break
+        return this.statusChange.activate(State.CONNECTING)
 
       case 'complete':
-        this.statusChange.activate(State.READY)
-        break
+        return this.statusChange.activate(State.READY)
     }
+    this.statusChange.deactivate(Error(`Unexpected iceGatheringState ${this.connection.iceGatheringState}`))
   }
 
   /** Close if we have already gone too far in the process. */
