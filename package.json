@@ -2,7 +2,7 @@
   "name": "@mothepro/ez-rtc",
   "description": "Simplify the data Peer to Peer (RTC) connenctions in browser",
   "author": "Maurice Prosper",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "license": "Apache-2.0",
   "main": "dist/npm/index.js",
   "sideEffects": false,
