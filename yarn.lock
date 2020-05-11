@@ -706,10 +706,10 @@ extsprintf@^1.2.0:
   resolved "https://registry.yarnpkg.com/extsprintf/-/extsprintf-1.4.0.tgz#e2689f8f356fad62cca65a3a91c5df5f9551692f"
   integrity sha1-4mifjzVvrWLMplo6kcXfX5VRaS8=
 
-fancy-emitter@^1.3.5:
-  version "1.3.5"
-  resolved "https://registry.yarnpkg.com/fancy-emitter/-/fancy-emitter-1.3.5.tgz#62326617c7624da94ba1ebd4398d93c2ecd5b498"
-  integrity sha512-4Z9PhO+Lj0aiuLUJeCrW4D5SGbCbRvA6oeeWSi7tHo2xwuXnK6D3+E0B5iwwTNPs3CwGSvJ1v65FcEAu4WX8HA==
+fancy-emitter@^1.3.6:
+  version "1.3.6"
+  resolved "https://registry.yarnpkg.com/fancy-emitter/-/fancy-emitter-1.3.6.tgz#16ed9e7cf3c4b07ca2f6cd0f5a561261eaa7ffef"
+  integrity sha512-yBu+dDTsPCZzRpFUxARtivgbt1Knjcy/LxVnKylXsWhdNDLuxdZzgP7Y5tRf6qUsDf3zE9FiDIxzZeuiq2kX4Q==
 
 fast-deep-equal@^3.1.1:
   version "3.1.1"
