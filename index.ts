@@ -48,7 +48,7 @@ export default class {
     try {
       // Sometimes creation can fail with a bad config.
       this.connection.setConfiguration({ iceServers: [{ urls }] })
-      
+
       // Bind emitters, We don't care about the connection state nor signaling, only gathering
       this.connection.addEventListener('icegatheringstatechange', this.iceGatheringStateChange)
       this.connection.addEventListener('negotiationneeded', this.negotiationNeeded)
@@ -61,10 +61,22 @@ export default class {
   }
 
   /** Sends some data through the channel. */
-  send(data: any) {
+  send(data: Sendable) {
     if (this.state != State.CONNECTED)
       throw Error('Unable to send data before a channel has been established.')
 
+    let size = 0
+    if (typeof data == 'string')
+      size = data.length
+    else if (data instanceof ArrayBuffer || ArrayBuffer.isView(data))
+      size = data.byteLength
+    else if (data instanceof Blob)
+      size = data.size
+
+    if (1 > size || size > this.connection.sctp!.maxMessageSize)
+      throw Error(`Data must be between 1 & ${this.connection.sctp!.maxMessageSize} bytes (inclusive)`)
+
+    // @ts-ignore stupid type overloads in `lib.dom.d.ts`
     this.channel!.send(data)
   }
 
