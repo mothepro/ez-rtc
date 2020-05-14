@@ -20,6 +20,8 @@ View the [Compatibility](https://developer.mozilla.org/en-US/docs/Web/API/RTCPee
 
 See the demo for a simple how-to
 
+Note: Browsers may not send empty messages
+
 ## Roadmap
 
 Add support for video & audio calls

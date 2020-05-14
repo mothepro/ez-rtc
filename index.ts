@@ -133,6 +133,7 @@ export default class {
     else
       this.channel = channel
 
+    channel.binaryType = 'arraybuffer'
     channel.addEventListener('open', () => this.statusChange.activate(State.CONNECTED))
     channel.addEventListener('message', ({ data }: MessageEvent) => this.message.activate(data))
     channel.addEventListener('error', ({ error }: RTCErrorEvent) => this.statusChange.deactivate(error!))
