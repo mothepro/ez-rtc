@@ -79,7 +79,7 @@ export default class {
       size = data.size
 
     if (1 > size || size > this.connection.sctp!.maxMessageSize)
-      throw Error(`Data must be between 1 & ${this.connection.sctp!.maxMessageSize} bytes (inclusive)`)
+      throw Error(`Attempted to send ${size} bytes. This channel supports between 1 & ${this.connection.sctp!.maxMessageSize} bytes.`)
 
     // @ts-ignore stupid type overloads in `lib.dom.d.ts`
     this.channel!.send(data)
@@ -173,7 +173,7 @@ export default class {
           this.sctpStateChange()
 
           // Ideally, we don't need to listen to the following since it should be handled by the `PeerConnection.connectionState`
-          
+
           // Only care about errors on the RTCDtlsTransport https://developer.mozilla.org/en-US/docs/Web/API/RTCDtlsTransport
           this.connection.sctp.transport.addEventListener('error', ({ error }) => this.statusChange.deactivate(error))
 
