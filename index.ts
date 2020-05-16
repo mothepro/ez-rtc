@@ -32,10 +32,10 @@ export default class {
   private channel?: RTCDataChannel
 
   /** Activates when the status has been updated. */
-  readonly statusChange = new Emitter<State>(newState => this.state = newState)
+  readonly statusChange: Emitter<State> = new Emitter
 
   /** Activates when a new message is received through the channel. */
-  readonly message = new SafeEmitter<Sendable>()
+  readonly message: SafeEmitter<Sendable> = new SafeEmitter
 
   constructor(
     urls: string[],
@@ -45,6 +45,9 @@ export default class {
   ) {
     this.connection = new peerConnection
 
+    this.statusChange
+      .on(newState => this.state = newState)
+      .catch(() => this.state = State.OFFLINE) // Reset the state
     try {
       // Sometimes creation can fail with a bad config.
       this.connection.setConfiguration({ iceServers: [{ urls }] })
