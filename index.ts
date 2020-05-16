@@ -47,16 +47,18 @@ export default class {
 
     this.statusChange
       .on(newState => this.state = newState)
-      .catch(() => this.state = State.OFFLINE) // Reset the state
-    try {
-      // Sometimes creation can fail with a bad config.
-      this.connection.setConfiguration({ iceServers: [{ urls }] })
+      .catch(() => this.state = State.OFFLINE) // Reset the state when things go wrong
 
-      // Bind emitters, We don't care about the connection state nor signaling, only gathering
+    try {
+      // Bind emitters, We don't care about the ICE connection state nor signaling, only ICE gathering
       this.connection.addEventListener('icegatheringstatechange', this.iceGatheringStateChange)
       this.connection.addEventListener('negotiationneeded', this.negotiationNeeded)
       this.connection.addEventListener('datachannel', this.newDataChannel)
-      this.connection.addEventListener('icecandidateerror', this.errorEvent)
+      this.connection.addEventListener('icecandidateerror', this.iceErrorEvent)
+      this.connection.addEventListener('connectionstatechange', this.connectionStateChange)
+
+      // Sometimes creation can fail with a bad config.
+      this.connection.setConfiguration({ iceServers: [{ urls }] })
     } catch (e) {
       this.statusChange.deactivate(e)
       this.close()
@@ -165,9 +167,60 @@ export default class {
         return this.statusChange.activate(State.CONNECTING)
 
       case 'complete':
-        return this.statusChange.activate(State.READY)
+        if (this.connection.sctp) {
+          // Watch for changes on the RTCSctpTransport https://developer.mozilla.org/en-US/docs/Web/API/RTCSctpTransport
+          this.connection.sctp.addEventListener('statechange', this.sctpStateChange)
+          this.sctpStateChange()
+
+          // Ideally, we don't need to listen to the following since it should be handled by the `PeerConnection.connectionState`
+          
+          // Only care about errors on the RTCDtlsTransport https://developer.mozilla.org/en-US/docs/Web/API/RTCDtlsTransport
+          this.connection.sctp.transport.addEventListener('error', ({ error }) => this.statusChange.deactivate(error))
+
+          // RTCIceTransport state https://developer.mozilla.org/en-US/docs/Web/API/RTCIceTransport/state
+          this.connection.sctp.transport.iceTransport.addEventListener('statechange', () =>
+            this.connection.sctp!.transport.iceTransport.state == 'failed' &&
+            this.statusChange.deactivate(Error('The ICE Transport protocol has failed')))
+        } else
+          this.statusChange.deactivate(Error('STCP Transport protocol should be set once gathering state is complete'))
+
     }
-    this.statusChange.deactivate(Error(`Unexpected iceGatheringState ${this.connection.iceGatheringState}`))
+  }
+
+  /**
+   * Something changed with our connection state.
+   * This is meant to be a combination of the ICE and DTLS Transport states.
+   */
+  private connectionStateChange = () => {
+    switch (this.connection.connectionState) {
+      case 'new':
+        return this.statusChange.activate(State.OFFLINE)
+
+      case 'connecting':
+        return this.statusChange.activate(State.CONNECTING)
+
+      case 'failed':
+        return this.statusChange.deactivate(Error('One of the ICE transports has failed'))
+
+      case 'disconnected': // RTC should be able to recover after some time.
+      case 'closed':
+        return this.statusChange.activate(State.OFFLINE).cancel()
+
+      // Let the channel opening handle connected event.
+    }
+  }
+
+  private sctpStateChange = () => {
+    switch (this.connection.sctp!.state) {
+      case 'connecting':
+        return this.statusChange.activate(State.CONNECTING)
+
+      case 'connected':
+        return this.statusChange.activate(State.READY)
+
+      case 'closed':
+        return this.statusChange.activate(State.OFFLINE).cancel()
+    }
   }
 
   /** Close if we have already gone too far in the process. */
@@ -179,7 +232,7 @@ export default class {
     ({ channel }) => this.bindChannel(channel)
 
   /** An error occurred with an ICE connection or gathering. */
-  private errorEvent: NonNullable<RTCPeerConnection['onicecandidateerror']> =
+  private iceErrorEvent: NonNullable<RTCPeerConnection['onicecandidateerror']> =
     ({ errorCode, errorText, hostCandidate, url }: RTCPeerConnectionIceErrorEvent) => {
       const err = Error(errorText)
         ; (err as Error & RTCPeerConnectionIceErrorEventInit).errorCode = errorCode
