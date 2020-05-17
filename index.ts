@@ -1,4 +1,4 @@
-import { Emitter, SafeEmitter } from 'fancy-emitter'
+import { Emitter, SafeEmitter, filter } from 'fancy-emitter'
 
 export type Sendable = string | Blob | ArrayBuffer | ArrayBufferView
 
@@ -131,9 +131,7 @@ export default class {
         }))
 
         // The offer is useless until we have gathered all ICE.
-        for await (const state of this.statusChange)
-          if (state == State.READY)
-            break
+        await filter(this.statusChange, State.READY)
       }
 
       return this.connection.localDescription!
@@ -168,11 +166,9 @@ export default class {
 
       case 'complete':
         if (this.connection.sctp) {
-          // Watch for changes on the RTCSctpTransport https://developer.mozilla.org/en-US/docs/Web/API/RTCSctpTransport
-          this.connection.sctp.addEventListener('statechange', this.sctpStateChange)
-          this.sctpStateChange()
-
-          // Ideally, we don't need to listen to the following since it should be handled by the `PeerConnection.connectionState`
+          // Verify the RTCSctpTransport https://developer.mozilla.org/en-US/docs/Web/API/RTCSctpTransport
+          if (this.connection.sctp.state == 'closed')
+            this.statusChange.activate(State.OFFLINE).cancel()
 
           // Only care about errors on the RTCDtlsTransport https://developer.mozilla.org/en-US/docs/Web/API/RTCDtlsTransport
           this.connection.sctp.transport.addEventListener('error', ({ error }) => this.statusChange.deactivate(error))
@@ -181,6 +177,12 @@ export default class {
           this.connection.sctp.transport.iceTransport.addEventListener('statechange', () =>
             this.connection.sctp!.transport.iceTransport.state == 'failed' &&
             this.statusChange.deactivate(Error('The ICE Transport protocol has failed')))
+          
+          // Ideally, we don't need to listen to the states for RTCDtlsTransport & RTCIceTransport
+          // since it should be handled by the`PeerConnection.connectionState`
+
+          // We are ready, unless something failed...
+          this.statusChange.activate(State.READY)
         } else
           this.statusChange.deactivate(Error('STCP Transport protocol should be set once gathering state is complete'))
 
@@ -207,19 +209,6 @@ export default class {
         return this.statusChange.activate(State.OFFLINE).cancel()
 
       // Let the channel opening handle connected event.
-    }
-  }
-
-  private sctpStateChange = () => {
-    switch (this.connection.sctp!.state) {
-      case 'connecting':
-        return this.statusChange.activate(State.CONNECTING)
-
-      case 'connected':
-        return this.statusChange.activate(State.READY)
-
-      case 'closed':
-        return this.statusChange.activate(State.OFFLINE).cancel()
     }
   }
 

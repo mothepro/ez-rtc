@@ -26,5 +26,5 @@ Note: Browsers may not send empty messages
 
 Add support for video & audio calls
 Possibly support unreliable mode
-Have a timeout for connection completion
+Support multiple data channels
 Support [negotiated](https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/createDataChannel#negotiated) data channel creation
