@@ -1,4 +1,4 @@
-import { Emitter, SafeEmitter, filter } from 'fancy-emitter'
+import { Emitter, SafeEmitter, filterValue } from 'fancy-emitter'
 
 export type Sendable = string | Blob | ArrayBuffer | ArrayBufferView
 
@@ -131,7 +131,7 @@ export default class {
         }))
 
         // The offer is useless until we have gathered all ICE.
-        await filter(this.statusChange, State.READY)
+        await filterValue(this.statusChange, State.READY)
       }
 
       return this.connection.localDescription!
