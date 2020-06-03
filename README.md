@@ -24,6 +24,8 @@ Note: Browsers may not send empty messages
 
 ## Roadmap
 
+Add a way to test RTC support in general (Connection with **a** STUN can be made)
+Do not throw with non-fatal connections
 Add support for video & audio calls
 Possibly support unreliable mode
 Support multiple data channels

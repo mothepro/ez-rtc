@@ -6,13 +6,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>Serverless WebRTC Demo</title>
-  <script type="module" src="//unpkg.com/es-module-shims@0.4.6/dist/es-module-shims.min.js"></script>
   <script type="importmap-shim" src="import-map.json"></script>
   <!-- Production -->
+  <script prod-only type=prod-only-module src="//unpkg.com/es-module-shims@0.4.6/dist/es-module-shims.min.js"></script>
   <script prod-only type=prod-only-module-shim src="//unpkg.com/@mothepro/ez-rtc/dist/esm/demo/index.js"></script>
   <!-- Development -->
   <script dev-only type=application/javascript src="//unpkg.com/typescript@3.7.4/lib/typescript.js"></script>
-  <script dev-only type=module src="//unpkg.com/@mothepro/ts-module-shim/dist/esm/index.js"></script>
+  <script dev-only type=module src="//unpkg.com/@mothepro/es-module-shims/dist/es-module-shims.min.js"></script>
   <script dev-only type=module-shim src="index.ts"></script>
 </head>
 

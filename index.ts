@@ -177,7 +177,7 @@ export default class {
           this.connection.sctp.transport.iceTransport.addEventListener('statechange', () =>
             this.connection.sctp!.transport.iceTransport.state == 'failed' &&
             this.statusChange.deactivate(Error('The ICE Transport protocol has failed')))
-          
+
           // Ideally, we don't need to listen to the states for RTCDtlsTransport & RTCIceTransport
           // since it should be handled by the`PeerConnection.connectionState`
 
@@ -221,6 +221,7 @@ export default class {
     ({ channel }) => this.bindChannel(channel)
 
   /** An error occurred with an ICE connection or gathering. */
+  // TODO this isn't always fatal. should not always deactivate.
   private iceErrorEvent: NonNullable<RTCPeerConnection['onicecandidateerror']> =
     ({ errorCode, errorText, hostCandidate, url }: RTCPeerConnectionIceErrorEvent) => {
       const err = Error(errorText)
