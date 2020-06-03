@@ -1,6 +1,7 @@
 import { Emitter, SafeEmitter, filterValue } from 'fancy-emitter'
 
-export type Sendable = string | Blob | ArrayBuffer | ArrayBufferView
+export type Receiveable = string | Blob | ArrayBuffer
+export type Sendable = Receiveable | ArrayBufferView
 
 export const enum State {
   /** Initial state. Nothing has occurred. */
@@ -35,7 +36,7 @@ export default class {
   readonly statusChange: Emitter<State> = new Emitter
 
   /** Activates when a new message is received through the channel. */
-  readonly message: SafeEmitter<Sendable> = new SafeEmitter
+  readonly message: SafeEmitter<Receiveable> = new SafeEmitter
 
   constructor(
     urls: string[],
