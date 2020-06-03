@@ -1,27 +1,30 @@
 import iceServers from './ice-servers.json'
 import Connection, { State } from '../index.js'
 
-// Elements on the HTML page
-const logPre = document.getElementById('log') as HTMLPreElement
-const createOfferBtn = document.getElementById('createOffer') as HTMLButtonElement
-const createAnswerBtn = document.getElementById('createAnswer') as HTMLButtonElement
-const sdpInput = document.getElementById('sdp') as HTMLInputElement
-const joinBtn = document.getElementById('join') as HTMLButtonElement
-const sendBtn = document.getElementById('send') as HTMLButtonElement
+const // Elements on the HTML page
+  logPre = document.getElementById('log') as HTMLPreElement,
+  createOfferBtn = document.getElementById('createOffer') as HTMLButtonElement,
+  createAnswerBtn = document.getElementById('createAnswer') as HTMLButtonElement,
+  sdpInput = document.getElementById('sdp') as HTMLInputElement,
+  joinBtn = document.getElementById('join') as HTMLButtonElement,
+  sendBtn = document.getElementById('send') as HTMLButtonElement,
 
-// Helper methods
-const log = (...args: any[]) => logPre.innerHTML += `${args.join('\t')}\n\n`
-const logErr = ({ name, ...err }: Error) =>
-  logPre.innerHTML += `<font color="red">${name || 'Error'}> ${JSON.stringify({...err}, null, 2)}\n</font>`
-const escapeHtml = (unsafe: string) => unsafe
+  // Helper methods
+  log = (...args: any[]) => logPre.innerHTML += `${args.join('\t')}\n\n`,
+  logErr = ({ name, stack, message, ...err }: Error) => logPre.innerHTML += 
+    `<details style="color: darkred">
+      <summary><b>${name ?? 'Error'}</b> ${stack ?? message}</summary>${
+      JSON.stringify({ ...err }, null, 2)
+    }</details>`,
+  escapeHtml = (unsafe: string) => unsafe
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;")
+    .replace(/'/g, "&#039;"),
 
-// The connection!
-const connection = new Connection(iceServers)
+  // The connection!
+  connection = new Connection(iceServers)
 
 connection.message.on((data: any) => log(escapeHtml(data)))
 connection.statusChange.on(state => {

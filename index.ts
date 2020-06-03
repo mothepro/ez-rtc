@@ -32,6 +32,9 @@ export default class {
   private readonly connection: RTCPeerConnection
   private channel?: RTCDataChannel
 
+  /** Non-fatal Errors thrown during this proccess */
+  readonly warnings: any[] = []
+
   /** Activates when the status has been updated. */
   readonly statusChange: Emitter<State> = new Emitter
 
@@ -39,6 +42,13 @@ export default class {
   readonly message: SafeEmitter<Receiveable> = new SafeEmitter
 
   constructor(
+    /**
+     * STUN servers to use.
+     * 
+     * One bad STUN address could cause...
+     * + Offer creation to take ~1 minute.
+     * + Undefined Long times to accept offer with possible failures thrown in the process.
+     */
     urls: string[],
 
     // Dependecy Injection 
@@ -51,18 +61,17 @@ export default class {
       .catch(() => this.state = State.OFFLINE) // Reset the state when things go wrong
 
     try {
-      // Bind emitters, We don't care about the ICE connection state nor signaling, only ICE gathering
+      // Bind emitters, We don't care about the ICE connection state nor signaling, only ICE gathering & overall connection state
       this.connection.addEventListener('icegatheringstatechange', this.iceGatheringStateChange)
       this.connection.addEventListener('negotiationneeded', this.negotiationNeeded)
-      this.connection.addEventListener('datachannel', this.newDataChannel)
-      this.connection.addEventListener('icecandidateerror', this.iceErrorEvent)
+      this.connection.addEventListener('icecandidateerror', event => this.warnings.push(event))
       this.connection.addEventListener('connectionstatechange', this.connectionStateChange)
+      this.connection.addEventListener('datachannel', ({ channel }) => this.bindChannel(channel))
 
       // Sometimes creation can fail with a bad config.
       this.connection.setConfiguration({ iceServers: [{ urls }] })
     } catch (e) {
-      this.statusChange.deactivate(e)
-      this.close()
+      this.fail('Unable to create a RTC Connection', e)
     }
   }
 
@@ -118,7 +127,7 @@ export default class {
     try {
       await this.connection.setRemoteDescription(sdp)
     } catch (e) {
-      this.statusChange.deactivate(e)
+      this.fail('Unable to accept SDP', e)
     }
   }
 
@@ -126,7 +135,7 @@ export default class {
     try {
       if (this.state == State.OFFLINE || this.state == State.CAN_OFFER) {
         this.connection.setLocalDescription(await description({
-          iceRestart: false,
+          iceRestart: true, // Forces refresh of candidates
           offerToReceiveAudio: false,
           offerToReceiveVideo: false,
           voiceActivityDetection: false,
@@ -138,22 +147,22 @@ export default class {
 
       return this.connection.localDescription!
     } catch (e) {
-      this.statusChange.deactivate(e)
-      throw e
+      this.fail('Unable to create SDP', e)
+      throw e // rethrow so the caller knows
     }
   }
 
   /** Binds the emitters to the channel. */
   private bindChannel(channel: RTCDataChannel) {
     if (this.channel)
-      this.statusChange.deactivate(Error('Can not rebind a new data channel.'))
+      this.fail('Can not rebind a new data channel.')
     else
       this.channel = channel
 
     channel.binaryType = 'arraybuffer'
     channel.addEventListener('open', () => this.statusChange.activate(State.CONNECTED))
     channel.addEventListener('message', ({ data }: MessageEvent) => this.message.activate(data))
-    channel.addEventListener('error', ({ error }: RTCErrorEvent) => this.statusChange.deactivate(error!))
+    channel.addEventListener('error', ({ error }: RTCErrorEvent) => this.fail('Data channel broken', error))
     channel.addEventListener('close', this.close)
   }
 
@@ -169,21 +178,21 @@ export default class {
             this.statusChange.activate(State.OFFLINE).cancel()
 
           // Only care about errors on the RTCDtlsTransport https://developer.mozilla.org/en-US/docs/Web/API/RTCDtlsTransport
-          this.connection.sctp.transport.addEventListener('error', ({ error }) => this.statusChange.deactivate(error))
+          this.connection.sctp.transport.addEventListener('error', ({ error }) => this.fail('SCTP transport broken', error))
 
           // RTCIceTransport state https://developer.mozilla.org/en-US/docs/Web/API/RTCIceTransport/state
           this.connection.sctp.transport.iceTransport.addEventListener('statechange', () =>
             this.connection.sctp!.transport.iceTransport.state == 'failed' &&
-            this.statusChange.deactivate(Error('The ICE Transport protocol has failed')))
+            this.fail('The ICE Transport protocol has failed'))
 
           // Ideally, we don't need to listen to the states for RTCDtlsTransport & RTCIceTransport
-          // since it should be handled by the`PeerConnection.connectionState`
+          // since it should be handled by the`PeerConnection.connectionState`, but that seems unreliable...
 
           // We are ready, unless something failed...
           this.statusChange.activate(State.READY)
         } else
-          this.statusChange.deactivate(Error('STCP Transport protocol should be set once gathering state is complete'))
-
+          this.fail('STCP Transport protocol should be set once gathering state is complete')
+        return
     }
   }
 
@@ -194,13 +203,11 @@ export default class {
   private connectionStateChange = () => {
     switch (this.connection.connectionState) {
       case 'new':
-      case 'disconnected': // RTC should be able to recover after some time.
         return this.statusChange.activate(State.OFFLINE)
 
+      case 'disconnected': // RTC should be able to recover after some time.
       case 'failed':
-        // @ts-ignore https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/restartIce
-        this.connection.restartIce()
-        return this.statusChange.deactivate(Error('One of the ICE transports has failed'))
+        return this.warnings.push(`The connection state is ${this.connection.connectionState} however, an alternate path to the peer may work.`)
 
       case 'closed':
         return this.statusChange.activate(State.OFFLINE).cancel()
@@ -214,19 +221,13 @@ export default class {
     () => this.state == State.OFFLINE
       ? this.statusChange.activate(State.CAN_OFFER)
       : this.warnings.push(Error(`Negotiation is needed as the offerer when in state ${State.OFFLINE}, unexpected state ${this.state}`))
-
-  /** A data channel has been created for us. (We are a receiver.) */
-  private newDataChannel: NonNullable<RTCPeerConnection['ondatachannel']> =
-    ({ channel }) => this.bindChannel(channel)
-
-  /** An error occurred with an ICE connection or gathering. */
-  // TODO this isn't always fatal. should not always deactivate.
-  private iceErrorEvent: NonNullable<RTCPeerConnection['onicecandidateerror']> =
-    ({ errorCode, errorText, hostCandidate, url }: RTCPeerConnectionIceErrorEvent) => {
-      const err = Error(errorText)
-        ; (err as Error & RTCPeerConnectionIceErrorEventInit).errorCode = errorCode
-        ; (err as Error & RTCPeerConnectionIceErrorEventInit).hostCandidate = hostCandidate
-        ; (err as Error & RTCPeerConnectionIceErrorEventInit).url = url
-      this.statusChange.deactivate(err)
-    }
+  
+  /** Forcibly ends this RTC connection. */
+  private fail(message: string, error: Error & Partial<{ warnings: any[], layman: string }> = Error(message)) {
+    console.warn(arguments)
+    error.layman = message
+    error.warnings = this.warnings
+    this.statusChange.deactivate(error)
+    this.close()
+  }
 }
