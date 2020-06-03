@@ -7,8 +7,8 @@ export const enum State {
   /** Initial state. Nothing has occurred. */
   OFFLINE,
 
-  /** A Peer Connection has been established. */
-  ONLINE,
+  /** Data channel has been created and can now be used create an offer. */
+  CAN_OFFER,
 
   /**
    * The ICE agents have been given addresses to gather and it isn't finished
@@ -101,9 +101,10 @@ export default class {
    * Creates a data channel if one hasn't been created already.
    */
   createOffer = () => {
+    const readyToOffer = filterValue(this.statusChange, State.CAN_OFFER)
     if (!this.channel)
       this.bindChannel(this.connection.createDataChannel(''))
-    return this.createSDP(this.connection.createOffer.bind(this.connection))
+    return readyToOffer.then(() => this.createSDP(this.connection.createOffer.bind(this.connection)))
   }
 
   /**
@@ -123,7 +124,7 @@ export default class {
 
   private async createSDP(description: RTCPeerConnection['createOffer' | 'createAnswer']) {
     try {
-      if (this.state == State.OFFLINE || this.state == State.CONNECTING) {
+      if (this.state == State.OFFLINE || this.state == State.CAN_OFFER) {
         this.connection.setLocalDescription(await description({
           iceRestart: false,
           offerToReceiveAudio: false,
@@ -156,12 +157,8 @@ export default class {
     channel.addEventListener('close', this.close)
   }
 
-  /** Something changed with our gathering state. */
   private iceGatheringStateChange = () => {
     switch (this.connection.iceGatheringState) {
-      case 'new':
-        return this.statusChange.activate(State.ONLINE)
-
       case 'gathering':
         return this.statusChange.activate(State.CONNECTING)
 
@@ -197,15 +194,14 @@ export default class {
   private connectionStateChange = () => {
     switch (this.connection.connectionState) {
       case 'new':
+      case 'disconnected': // RTC should be able to recover after some time.
         return this.statusChange.activate(State.OFFLINE)
 
-      case 'connecting':
-        return this.statusChange.activate(State.CONNECTING)
-
       case 'failed':
+        // @ts-ignore https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/restartIce
+        this.connection.restartIce()
         return this.statusChange.deactivate(Error('One of the ICE transports has failed'))
 
-      case 'disconnected': // RTC should be able to recover after some time.
       case 'closed':
         return this.statusChange.activate(State.OFFLINE).cancel()
 
@@ -215,7 +211,9 @@ export default class {
 
   /** Close if we have already gone too far in the process. */
   private negotiationNeeded: NonNullable<RTCPeerConnection['onnegotiationneeded']> =
-    () => this.state == State.CONNECTED || this.state == State.READY && this.close()
+    () => this.state == State.OFFLINE
+      ? this.statusChange.activate(State.CAN_OFFER)
+      : this.warnings.push(Error(`Negotiation is needed as the offerer when in state ${State.OFFLINE}, unexpected state ${this.state}`))
 
   /** A data channel has been created for us. (We are a receiver.) */
   private newDataChannel: NonNullable<RTCPeerConnection['ondatachannel']> =
